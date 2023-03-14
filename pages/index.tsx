@@ -8,49 +8,9 @@ import Swal from 'sweetalert2';
 import withReactContent from 'sweetalert2-react-content';
 import Router from "next/router";
 
-// index.tsx
-export const getStaticProps: GetStaticProps = async () => {
-
-  const feed = await prisma.post.findMany({
-    where: { published: false },
-    include: {
-      author: {
-        select: { name: true },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc'
-    } as any,
-    take: 1
-  });
-
-  const latestEntry = await prisma.logEntry.findMany({
-    orderBy: {
-      createdAt: 'desc'
-    },
-    take: 1
-  });
-
-
-  return {
-    props: {
-      latestEntry: JSON.stringify(latestEntry),
-      feed: JSON.stringify(feed)
-    },
-    revalidate: 10,
-  };
-
-};
-
-type Props = {
-  feed: PostProps[]
-  latestEntry: PostProps[]
-}
-
-
 const isSamAwake = logEntry => {
   if (logEntry) {
-    const entry = JSON.parse(logEntry)[0];
+    const entry = logEntry;
     const d = new Date(entry.createdAt);
     const now = new Date();
 
@@ -78,15 +38,42 @@ const isSamAwake = logEntry => {
   }
 }
 
-const StatusUpdate: React.FC<Props> = (props) => {
+const fetchData = async () => {
+  const latestEntry = await fetch('/api/getLatestEntry')
+    .then((res) => res.json())
+    .then((data) => {
+      return data;
+    })
+  const feed = await fetch('/api/getMotd')
+    .then((res) => res.json())
+    .then((data) => {
+      return data;
+    })
+  return { latestEntry: latestEntry, feed: feed }
+}
+
+const StatusUpdate: React.FC = () => {
   const { data: session } = useSession();
   // const swal = withReactContent(Swal);
+  const [update, setUpdate] = useState(0);
   const [currentStatus, setCurrentStatus] = useState('');
 
+  const [feed, setFeed] = useState([]);
+  const [latestEntry, setLatestEntry] = useState('');
+
+
   useEffect(() => {
-    setCurrentStatus(isSamAwake(props.latestEntry));
-    alert(props.latestEntry);
-  }, [props]);
+    const fd = async () => {
+      const data = await fetchData();
+      setLatestEntry(data.latestEntry[0]);
+      setFeed(data.feed);
+    }
+    fd().catch(console.error);
+  }, [update])
+
+  useEffect(() => {
+    setCurrentStatus(isSamAwake(latestEntry));
+  }, [latestEntry]);
 
   const sendAwakenessEntry = async (isAwake: boolean) => {
     try {
@@ -99,14 +86,9 @@ const StatusUpdate: React.FC<Props> = (props) => {
 
       if (res.status === 200) {
         Swal.fire('CONGRATS', `You're ${isAwake ? 'AWAKE' : 'ASLEEP'}`, 'success')
-          .then(() => {
-            Router.replace(Router.asPath);
-          });
+          .then(() => setUpdate(update + 1));
       } else {
         Swal.fire(res.statusText, `${res.status}`, 'error')
-          .then(() => {
-            Router.replace(Router.asPath);
-          });
       }
 
     } catch (error) {
@@ -120,7 +102,7 @@ const StatusUpdate: React.FC<Props> = (props) => {
         <div className="page" >
           <h1>Current Status: {currentStatus}</h1>
           <main>
-            {JSON.parse(props.feed as unknown as string).map((post) => (
+            {feed.map((post) => (
               <div key={post.id} className="post">
                 <Post post={post} />
               </div>
