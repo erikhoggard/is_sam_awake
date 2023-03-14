@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from "react"
-import { GetStaticProps } from "next"
 import { useSession } from 'next-auth/react';
 import Layout from "../components/Layout"
 import Post, { PostProps } from "../components/Post"
-import prisma from '../lib/prisma';
 import Swal from 'sweetalert2';
-import withReactContent from 'sweetalert2-react-content';
-import Router from "next/router";
 
 const isSamAwake = logEntry => {
   if (logEntry) {
