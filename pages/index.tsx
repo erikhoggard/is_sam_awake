@@ -1,4 +1,4 @@
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { GetStaticProps } from "next"
 import { useSession } from 'next-auth/react';
 import Layout from "../components/Layout"
@@ -81,6 +81,12 @@ const isSamAwake = logEntry => {
 const StatusUpdate: React.FC<Props> = (props) => {
   const { data: session } = useSession();
   // const swal = withReactContent(Swal);
+  const [currentStatus, setCurrentStatus] = useState('');
+
+  useEffect(() => {
+    setCurrentStatus(isSamAwake(props.latestEntry));
+    alert(props.latestEntry);
+  }, [props]);
 
   const sendAwakenessEntry = async (isAwake: boolean) => {
     try {
@@ -112,7 +118,7 @@ const StatusUpdate: React.FC<Props> = (props) => {
     <>
       <Layout>
         <div className="page" >
-          <h1>Current Status: {isSamAwake(props.latestEntry)}</h1>
+          <h1>Current Status: {currentStatus}</h1>
           <main>
             {JSON.parse(props.feed as unknown as string).map((post) => (
               <div key={post.id} className="post">
