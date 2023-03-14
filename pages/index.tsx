@@ -51,10 +51,8 @@ type Props = {
 const isSamAwake = logEntry => {
   if (logEntry) {
     const entry = JSON.parse(logEntry)[0];
-    console.log(logEntry);
     const d = new Date(entry.createdAt);
     const now = new Date();
-    console.log(d);
 
     const hoursDiff = (dt1, dt2) => {
       let diff = (dt2.getTime() - dt1.getTime()) / 1000;
@@ -65,9 +63,6 @@ const isSamAwake = logEntry => {
     let isAwake = entry.isAwake;
     let status: string;
     const diff = hoursDiff(d, now)
-
-    console.log(diff);
-    console.log(isAwake);
 
     if (diff > 168) {
       status = 'UNKNOWN';
@@ -99,13 +94,12 @@ const StatusUpdate: React.FC<Props> = (props) => {
       if (res.status === 200) {
         Swal.fire('CONGRATS', `You're ${isAwake ? 'AWAKE' : 'ASLEEP'}`, 'success')
           .then(() => {
-            Router.reload();
+            Router.replace(Router.asPath);
           });
       } else {
-        console.log(res);
         Swal.fire(res.statusText, `${res.status}`, 'error')
           .then(() => {
-            Router.reload();
+            Router.replace(Router.asPath);
           });
       }
 

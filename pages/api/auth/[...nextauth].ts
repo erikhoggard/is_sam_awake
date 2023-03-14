@@ -22,5 +22,5 @@ const options = {
 		}
 	},
 	adapter: PrismaAdapter(prisma),
-	secret: process.env.NEXTAUTH_SECRET,
+	secret: process.env.NEXAUTH_SECRET,
 };
