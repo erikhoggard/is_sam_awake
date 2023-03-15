@@ -16,7 +16,8 @@ const isSamAwake = logEntry => {
       return Math.abs(Math.round(diff));
     }
 
-    let isAwake = entry.isAwake;
+    let wasRecentlyAwake = entry.isAwake;
+    let isAwake: boolean;
     let status: string;
     const diff = hoursDiff(d, now)
 
@@ -24,8 +25,10 @@ const isSamAwake = logEntry => {
       status = 'UNKNOWN';
       //TODO more in-depth date info??
     } else {
-      if (diff % 24 > 16) {
-        isAwake = !isAwake
+      if (wasRecentlyAwake) {
+        isAwake = (diff % 24 <= 16);
+      } else {
+        isAwake = (diff % 24 > 8);
       }
       status = isAwake === true ? "PROBABLY AWAKE" : "PROBABLY ASLEEP";
     }
@@ -50,7 +53,6 @@ const fetchData = async () => {
 
 const StatusUpdate: React.FC = () => {
   const { data: session } = useSession();
-  // const swal = withReactContent(Swal);
   const [update, setUpdate] = useState(0);
   const [currentStatus, setCurrentStatus] = useState('');
 
