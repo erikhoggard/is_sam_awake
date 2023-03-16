@@ -3,18 +3,21 @@ import { useSession } from 'next-auth/react';
 import Layout from "../components/Layout"
 import Post, { PostProps } from "../components/Post"
 import Swal from 'sweetalert2';
+import styled from 'styled-components';
 
-const isSamAwake = logEntry => {
+
+const hoursDiff = (dt1: Date, dt2: Date) => {
+  let diff = (dt2.getTime() - dt1.getTime()) / 1000;
+  diff /= (60 * 60);
+  return Math.abs(Math.round(diff));
+}
+
+const isSamAwake = (logEntry: any) => {
   if (logEntry) {
     const entry = logEntry;
     const d = new Date(entry.createdAt);
     const now = new Date();
 
-    const hoursDiff = (dt1, dt2) => {
-      let diff = (dt2.getTime() - dt1.getTime()) / 1000;
-      diff /= (60 * 60);
-      return Math.abs(Math.round(diff));
-    }
 
     let wasRecentlyAwake = entry.isAwake;
     let isAwake: boolean;
@@ -30,7 +33,7 @@ const isSamAwake = logEntry => {
       } else {
         isAwake = (diff % 24 > 8);
       }
-      status = isAwake === true ? "PROBABLY AWAKE" : "PROBABLY ASLEEP";
+      status = isAwake === true ? "AWAKE" : "ASLEEP";
     }
 
     return status;
@@ -51,13 +54,25 @@ const fetchData = async () => {
   return { latestEntry: latestEntry, feed: feed }
 }
 
+
+
+const styles: any = {
+  container: (isRowBased: boolean) => ({
+    display: 'flex',
+    flexDirection: isRowBased ? 'row' : 'columns',
+    justifyContent: 'space-between'
+  })
+}
+
 const StatusUpdate: React.FC = () => {
+
   const { data: session } = useSession();
   const [update, setUpdate] = useState(0);
   const [currentStatus, setCurrentStatus] = useState('');
+  const [hoursElapsed, setHoursElaplsed] = useState(24);
 
   const [feed, setFeed] = useState([]);
-  const [latestEntry, setLatestEntry] = useState('');
+  const [latestEntry, setLatestEntry] = useState({} as any);
 
 
   useEffect(() => {
@@ -71,6 +86,7 @@ const StatusUpdate: React.FC = () => {
 
   useEffect(() => {
     setCurrentStatus(isSamAwake(latestEntry));
+    setHoursElaplsed(hoursDiff(new Date(latestEntry.createdAt), new Date()));
   }, [latestEntry]);
 
   const sendAwakenessEntry = async (isAwake: boolean) => {
@@ -94,11 +110,36 @@ const StatusUpdate: React.FC = () => {
     }
   };
 
+  const HeaderDiv = styled.div`
+    display:flex;
+      flex-direction: column;
+      justify-content: space-around;
+    @media only screen and (min-width:900px) {
+      flex-direction: row;
+      justify-content: space-between;
+    }
+  `;
+
+  const HeaderCertainty = styled.h3`
+    color: rgb(${hoursElapsed > 72 ? 200 : 0},${hoursElapsed < 24 ? 155 : 0},0);
+    margin-top: 0em;
+    margin-bottom:2em;
+    @media only screen and (min-width:900px) {
+      margin-top:1.5em;
+      margin-bottom:2em;
+    }
+  `;
+
   return (
     <>
       <Layout>
-        <div className="page" >
-          <h1>Current Status: {currentStatus}</h1>
+        <div>
+          <div className="page" >
+            <HeaderDiv>
+              <h1>Current Status: Sam is {currentStatus}</h1>
+              <HeaderCertainty>{hoursElapsed < 24 ? 'and I\'m SURE about it.' : hoursElapsed > 72 ? 'samnTracker data 3+ days out of date.' : 'and this is PROBABLY correct.'}</HeaderCertainty>
+            </HeaderDiv>
+          </div>
           <main>
             {feed.map((post) => (
               <div key={post.id} className="post">
