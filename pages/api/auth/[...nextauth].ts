@@ -16,11 +16,11 @@ const options = {
 			clientSecret: process.env.GITHUB_SECRET,
 		}),
 	],
-	// callbacks: {
-	// 	async signIn({ user, account }) {
-	// 		return user.isSam === true;
-	// 	}
-	// },
+	callbacks: {
+		async signIn({ user }) {
+			return user.isSam === true;
+		}
+	},
 	adapter: PrismaAdapter(prisma),
 	secret: process.env.NEXAUTH_SECRET,
 };
