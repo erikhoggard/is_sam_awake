@@ -23,6 +23,25 @@ const Draft: React.FC = () => {
 		}
 	};
 
+	const fetchData = async () => {
+		const feed = await fetch('/api/getMotd')
+			.then((res) => res.json())
+			.then((data) => {
+				return data;
+			})
+		return feed;
+	}
+
+	useEffect(() => {
+		const fd = async () => {
+			const data = await fetchData();
+			console.log(data);
+			setTitle(data[0].title);
+			setContent(data[0].content);
+		}
+		fd();
+	});
+
 	return (
 		<Layout>
 			<div>
