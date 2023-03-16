@@ -15,23 +15,29 @@ const hoursDiff = (dt1: Date, dt2: Date) => {
 const isSamAwake = (logEntry: any) => {
   if (logEntry) {
     const entry = logEntry;
+    const offset = entry.offset;
+    const wasRecentlyAwake = entry.isAwake;
+
     const d = new Date(entry.createdAt);
+    d.setHours(d.getHours() + offset);
     const now = new Date();
 
-
-    let wasRecentlyAwake = entry.isAwake;
     let isAwake: boolean;
     let status: string;
     const diff = hoursDiff(d, now)
 
     if (diff > 168) {
       status = 'UNKNOWN';
+    } else if (d.getTime() > now.getTime() && wasRecentlyAwake === false) {
+      // sleep planned within the next few hours
+      status = "AWAKE";
+
       //TODO more in-depth date info??
     } else {
       if (wasRecentlyAwake) {
-        isAwake = (diff % 24 <= 16);
+        isAwake = ((diff % 24) <= 16);
       } else {
-        isAwake = (diff % 24 > 8);
+        isAwake = ((diff % 24) > 8);
       }
       status = isAwake === true ? "AWAKE" : "ASLEEP";
     }
@@ -52,16 +58,6 @@ const fetchData = async () => {
       return data;
     })
   return { latestEntry: latestEntry, feed: feed }
-}
-
-
-
-const styles: any = {
-  container: (isRowBased: boolean) => ({
-    display: 'flex',
-    flexDirection: isRowBased ? 'row' : 'columns',
-    justifyContent: 'space-between'
-  })
 }
 
 const StatusUpdate: React.FC = () => {
@@ -91,19 +87,41 @@ const StatusUpdate: React.FC = () => {
 
   const sendAwakenessEntry = async (isAwake: boolean) => {
     try {
-      const body = { isAwake: isAwake };
-      const res = await fetch('/api/awakenessUpdate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+      Swal.fire({
+        title: 'Offset by x hours',
+        text: 'When did/will this happen???',
+        input: 'number',
+        showCancelButton: true,
+      }).then(async ({ isDismissed, value }) => {
 
-      if (res.status === 200) {
-        Swal.fire('CONGRATS', `You're ${isAwake ? 'AWAKE' : 'ASLEEP'}`, 'success')
-          .then(() => setUpdate(update + 1));
-      } else {
-        Swal.fire(res.statusText, `${res.status}`, 'error')
-      }
+        if (isDismissed) return Promise.resolve(false);
+
+        let offset = parseInt(value);
+        if (isNaN(offset)) offset = 0;
+
+        const body = { isAwake: isAwake, offset: offset };
+
+        const res = await fetch('/api/awakenessUpdate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (res.status === 200) {
+          return Promise.resolve(true);
+        } else {
+          return Promise.reject(res);
+        }
+      }).then((shouldContinue: boolean) => {
+        if (shouldContinue) {
+          Swal.fire('CONGRATS', `You're ${isAwake ? 'AWAKE' : 'ASLEEP'}`, 'success')
+        } else {
+          return Promise.resolve();
+        }
+      }).then(() => setUpdate(update + 1))
+        .catch(err => {
+          Swal.fire('errrrrrrrrrrrrrrrrror', `${err}`, 'error')
+        })
 
     } catch (error) {
       console.error(error);
