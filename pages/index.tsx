@@ -5,6 +5,8 @@ import Post, { PostProps } from "../components/Post"
 import Swal from 'sweetalert2';
 import styled from 'styled-components';
 
+const HOURS_AWAKE = 16;
+const HOURS_ASLEEP = 8;
 
 const hoursDiff = (dt1: Date, dt2: Date) => {
   let diff = (dt2.getTime() - dt1.getTime()) / 1000;
@@ -13,7 +15,7 @@ const hoursDiff = (dt1: Date, dt2: Date) => {
 }
 
 const isSamAwake = (logEntry: any) => {
-  if (logEntry) {
+  if (logEntry.isAwake !== undefined) {
     const entry = logEntry;
     const offset = entry.offset;
     const wasRecentlyAwake = entry.isAwake;
@@ -25,6 +27,7 @@ const isSamAwake = (logEntry: any) => {
     let isAwake: boolean;
     let status: string;
     const diff = hoursDiff(d, now)
+    let remainder = (diff % 24);
 
     if (diff > 168) {
       status = 'UNKNOWN';
@@ -35,15 +38,17 @@ const isSamAwake = (logEntry: any) => {
       //TODO more in-depth date info??
     } else {
       if (wasRecentlyAwake) {
-        isAwake = ((diff % 24) <= 16);
+        isAwake = (remainder <= HOURS_AWAKE);
       } else {
-        isAwake = ((diff % 24) > 8);
+        isAwake = (remainder > HOURS_ASLEEP);
       }
       status = isAwake === true ? "AWAKE" : "ASLEEP";
     }
 
-    return status;
+    return { isAwake: isAwake, statusText: status, remainder: remainder };
   }
+
+  return { isAwake: false, statusText: '...', remainder: 0 };
 }
 
 const fetchData = async () => {
@@ -64,8 +69,9 @@ const StatusUpdate: React.FC = () => {
 
   const { data: session } = useSession();
   const [update, setUpdate] = useState(0);
-  const [currentStatus, setCurrentStatus] = useState('');
+  const [currentStatus, setCurrentStatus] = useState('...');
   const [hoursElapsed, setHoursElaplsed] = useState(24);
+  const [updateMessage, setUpdateMessage] = useState({ text: '-', color: '100,100,255' });
 
   const [feed, setFeed] = useState([]);
   const [latestEntry, setLatestEntry] = useState({} as any);
@@ -81,8 +87,43 @@ const StatusUpdate: React.FC = () => {
   }, [update])
 
   useEffect(() => {
-    setCurrentStatus(isSamAwake(latestEntry));
-    setHoursElaplsed(hoursDiff(new Date(latestEntry.createdAt), new Date()));
+    const wakeCheck = isSamAwake(latestEntry);
+    setCurrentStatus(wakeCheck.statusText);
+    const hoursElapsed = hoursDiff(new Date(latestEntry.createdAt), new Date());
+    // color: rgb(${hoursElapsed < 24 ? '0,155,0' : hoursElapsed > 72 ? '200,0,0' : '200,200,0'});
+    let color = '0,0,0';
+    let message: string;
+
+    if (hoursElapsed < 72) {
+      if (wakeCheck.isAwake && (wakeCheck.remainder >= HOURS_AWAKE - 1 && wakeCheck.remainder <= HOURS_AWAKE)) {
+        message = 'but he might be sleeping soon.'
+        color = '100,100,255';
+      } else if (!wakeCheck.isAwake && (wakeCheck.remainder >= HOURS_ASLEEP - 1 && wakeCheck.remainder <= HOURS_ASLEEP)) {
+        message = 'but he might be waking up soon.'
+        color = '100,100,255';
+      }
+    }
+
+    if (!message) {
+      if (hoursElapsed < 24) {
+        message = 'and I\'m SURE about it.';
+        color = '0,155,0';
+      } else if (hoursElapsed > 72) {
+        message = 'and this is PROBABLY correct.';
+        color = '200,200,0';
+      } else if (latestEntry.offset) {
+        message = 'samnTracker data 3+ days out of date.';
+        color = '200,0,0';
+      }
+    }
+
+    setUpdateMessage(
+      {
+        text: message,
+        color: color
+      }
+    );
+
   }, [latestEntry]);
 
   const sendAwakenessEntry = async (isAwake: boolean) => {
@@ -138,8 +179,8 @@ const StatusUpdate: React.FC = () => {
     }
   `;
 
-  const HeaderCertainty = styled.h3`
-    color: rgb(${hoursElapsed > 72 ? 200 : 0},${hoursElapsed < 24 ? 155 : 0},0);
+  const HeaderCertainty = styled.h3.attrs((props: { color: string }) => props)`
+    color: rgb(${props => props.color});
     margin-top: 0em;
     margin-bottom:2em;
     @media only screen and (min-width:900px) {
@@ -155,7 +196,7 @@ const StatusUpdate: React.FC = () => {
           <div className="page" >
             <HeaderDiv>
               <h1>Current Status: Sam is {currentStatus}</h1>
-              <HeaderCertainty>{hoursElapsed < 24 ? 'and I\'m SURE about it.' : hoursElapsed > 72 ? 'samnTracker data 3+ days out of date.' : 'and this is PROBABLY correct.'}</HeaderCertainty>
+              <HeaderCertainty color={updateMessage.color}>{updateMessage.text}</HeaderCertainty>
             </HeaderDiv>
           </div>
           <main>
