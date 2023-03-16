@@ -88,13 +88,11 @@ const StatusUpdate: React.FC = () => {
 
   useEffect(() => {
     const wakeCheck = isSamAwake(latestEntry);
-    setCurrentStatus(wakeCheck.statusText);
     const hoursElapsed = hoursDiff(new Date(latestEntry.createdAt), new Date());
-    // color: rgb(${hoursElapsed < 24 ? '0,155,0' : hoursElapsed > 72 ? '200,0,0' : '200,200,0'});
     let color = '0,0,0';
     let message: string;
 
-    if (hoursElapsed < 72) {
+    if (hoursElapsed <= 72) {
       if (wakeCheck.isAwake && (wakeCheck.remainder >= HOURS_AWAKE - 1 && wakeCheck.remainder <= HOURS_AWAKE)) {
         message = 'but he might be sleeping soon.'
         color = '100,100,255';
@@ -109,14 +107,15 @@ const StatusUpdate: React.FC = () => {
         message = 'and I\'m SURE about it.';
         color = '0,155,0';
       } else if (hoursElapsed > 72) {
-        message = 'and this is PROBABLY correct.';
-        color = '200,200,0';
-      } else if (latestEntry.offset) {
         message = 'samnTracker data 3+ days out of date.';
         color = '200,0,0';
+      } else if (latestEntry.offset) {
+        message = 'and this is PROBABLY correct.';
+        color = '200,200,0';
       }
     }
 
+    setCurrentStatus(wakeCheck.statusText);
     setUpdateMessage(
       {
         text: message,
