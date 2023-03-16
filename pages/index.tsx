@@ -88,15 +88,18 @@ const StatusUpdate: React.FC = () => {
 
   useEffect(() => {
     const wakeCheck = isSamAwake(latestEntry);
-    const hoursElapsed = hoursDiff(new Date(latestEntry.createdAt), new Date());
+
+    const d = new Date(latestEntry.createdAt);
+    d.setHours(d.getHours() + latestEntry.offset);
+    const hoursElapsed = hoursDiff(d, new Date());
     let color = '0,0,0';
     let message: string;
 
     if (hoursElapsed <= 72) {
-      if (wakeCheck.isAwake && (wakeCheck.remainder >= HOURS_AWAKE - 1 && wakeCheck.remainder <= HOURS_AWAKE)) {
+      if (wakeCheck.isAwake && (wakeCheck.remainder >= HOURS_AWAKE - 2 && wakeCheck.remainder <= HOURS_AWAKE && hoursElapsed <= HOURS_AWAKE)) {
         message = 'but he might be sleeping soon.'
         color = '100,100,255';
-      } else if (!wakeCheck.isAwake && (wakeCheck.remainder >= HOURS_ASLEEP - 1 && wakeCheck.remainder <= HOURS_ASLEEP)) {
+      } else if (!wakeCheck.isAwake && (wakeCheck.remainder >= HOURS_ASLEEP - 1 && wakeCheck.remainder <= HOURS_ASLEEP && hoursElapsed <= HOURS_ASLEEP)) {
         message = 'but he might be waking up soon.'
         color = '100,100,255';
       }

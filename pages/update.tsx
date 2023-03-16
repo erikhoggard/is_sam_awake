@@ -40,7 +40,7 @@ const Draft: React.FC = () => {
 			setContent(data[0].content);
 		}
 		fd();
-	});
+	}, []);
 
 	return (
 		<Layout>
