@@ -181,7 +181,7 @@ const StatusUpdate: React.FC = () => {
     }
   `;
 
-  const HeaderCertainty = styled.h3.attrs((props: { color: string }) => props)`
+  const HeaderCertainty = styled.h3.attrs<{ color: string }>((props) => props)`
     color: rgb(${props => props.color});
     margin-top: 0em;
     margin-bottom:2em;
